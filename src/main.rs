@@ -99,6 +99,7 @@ fn process_dtmf(
     fft.process(&mut buf[..last_index]);
     let freq = utils::fft_freq(chunk_size, dt);
 
+    let mut detected_dtmf = vec![];
     for (i, chunk) in buf.chunks_mut(chunk_size).enumerate() {
         if chunk.len() != chunk_size {
             break;
@@ -158,31 +159,19 @@ fn process_dtmf(
                 println!("found {} at {}ms", dtmf, time);
             }
 
-            let mut remove_freq = |target_f: f64, allowed_delta: f64| {
-                let min_i = freq
-                    .iter()
-                    .position(|&f| f > target_f - allowed_delta)
-                    .unwrap();
-                let max_i = freq
-                    .iter()
-                    .position(|&f| f > target_f + allowed_delta)
-                    .unwrap();
-
-                for v in &mut chunk[min_i..max_i].iter_mut() {
-                    *v = Complex::new(f64::MIN, 0.0);
-                }
-            };
-
-            remove_freq(lf, allowed_delta);
-            remove_freq(hf, allowed_delta);
+            detected_dtmf.push(Some(dtmf));
+        } else {
+            detected_dtmf.push(None);
         }
     }
 
-    let ifft = planner.plan_fft_inverse(chunk_size);
-    ifft.process(&mut buf[..last_index]);
+    let mut buf = samples.to_vec();
 
-    return buf
-        .iter()
-        .map(|c| (c.re / chunk_size as f64) as i16)
-        .collect::<Vec<_>>();
+    for (i, chunk) in buf.chunks_mut(chunk_size).enumerate() {
+        if let Some(_dtmf) = detected_dtmf.get(i).unwrap_or(&None) {
+            chunk.fill(0);
+        }
+    }
+
+    return buf;
 }
