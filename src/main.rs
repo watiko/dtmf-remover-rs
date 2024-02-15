@@ -66,12 +66,12 @@ fn main() {
 
     assert_eq!(spec.bits_per_sample, 16);
     let samples: Vec<i16> = reader.samples().map(|s| s.unwrap()).collect();
-    let (left, right) = utils::split_stereo_wave(samples);
+    let splitted = utils::split_wave(samples, spec.channels as usize)
+        .iter()
+        .map(|samples| process_dtmf(samples, sample_chunk_size, duration_ms, dt, args.debug))
+        .collect();
 
-    let left = process_dtmf(&left, sample_chunk_size, duration_ms, dt, args.debug);
-    let right = process_dtmf(&right, sample_chunk_size, duration_ms, dt, args.debug);
-
-    let samples = utils::join_stereo_wave(left, right);
+    let samples = utils::join_wave(splitted);
     let mut writer = WavWriter::create(args.output_wav_file, spec).unwrap();
 
     for &sample in samples.iter() {

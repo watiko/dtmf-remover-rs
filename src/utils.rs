@@ -1,21 +1,22 @@
-pub fn split_stereo_wave<S: Sized + Copy>(samples: Vec<S>) -> (Vec<S>, Vec<S>) {
-    let size = samples.len() / 2;
-    let mut l_samples = Vec::with_capacity(size);
-    let mut r_samples = Vec::with_capacity(size);
+pub fn split_wave<S: Sized + Copy>(samples: Vec<S>, channels: usize) -> Vec<Vec<S>> {
+    let size = samples.len() / channels;
+    let mut splitted = vec![Vec::with_capacity(size); channels];
     for i in 0..size {
-        l_samples.push(samples[i * 2]);
-        r_samples.push(samples[i * 2 + 1]);
+        for (j, s) in splitted.iter_mut().enumerate() {
+            s.push(samples[i * channels + j])
+        }
     }
-    (l_samples, r_samples)
+    splitted
 }
 
-pub fn join_stereo_wave<S: Sized + Copy>(l_samples: Vec<S>, r_samples: Vec<S>) -> Vec<S> {
-    let mut result = Vec::with_capacity(l_samples.len() * 2);
-    for i in 0..l_samples.len() {
-        let left = l_samples[i];
-        let right = r_samples[i];
-        result.push(left);
-        result.push(right);
+pub fn join_wave<S: Sized + Copy>(splitted: Vec<Vec<S>>) -> Vec<S> {
+    let channels = splitted.len();
+    let size = splitted.first().expect("msg").len();
+    let mut result = Vec::with_capacity(size * channels);
+    for i in 0..size {
+        for s in splitted.iter() {
+            result.push(s[i]);
+        }
     }
     result
 }
